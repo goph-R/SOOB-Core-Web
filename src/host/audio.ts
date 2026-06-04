@@ -19,6 +19,7 @@ const musicBuffers = new Map<string, AudioBuffer>()
 
 let current: { src: AudioBufferSourceNode; gain: GainNode } | null = null
 let pending: { name: string; fade: number; loop: boolean } | null = null
+let desiredName: string | null = null // the track we want playing (dedupe key)
 let musicGen = 0 // cancels in-flight async music starts
 
 // path lookup is injected by assets to avoid a circular import
@@ -96,7 +97,8 @@ async function startMusic(name: string, fade: number, loop: boolean) {
   if (!ctx || !musicBus) return
   const gen = ++musicGen
   const buf = await getMusic(name)
-  if (!buf || gen !== musicGen || ctx.state !== 'running') return
+  if (!buf) { if (desiredName === name) desiredName = null; return } // allow a later retry
+  if (gen !== musicGen || ctx.state !== 'running') return
 
   const now = ctx.currentTime
   const gain = ctx.createGain()
@@ -121,12 +123,17 @@ async function startMusic(name: string, fade: number, loop: boolean) {
 
 export function musicPlay(name: string, fade: number, loop: boolean) {
   if (!ctx) return
+  // Same track already playing / requested → no-op, so re-entering a scene
+  // (e.g. back to the menu) doesn't restart the loop. Matches native music.h.
+  if (name === desiredName) return
+  desiredName = name
   if (ctx.state !== 'running') { pending = { name, fade, loop }; return } // play on unlock
   startMusic(name, fade, loop)
 }
 
 export function musicStop(fade: number) {
   pending = null
+  desiredName = null
   musicGen++ // cancel any in-flight start
   if (!ctx || !current) return
   const now = ctx.currentTime

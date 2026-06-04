@@ -47,6 +47,9 @@ function keyName(e: KeyboardEvent): string {
   }
 }
 
+// Keys whose browser default we suppress (navigation / scroll / focus).
+const CONSUME = new Set(['backspace', 'tab', 'space', 'left', 'right', 'up', 'down'])
+
 export function attachInput(cv: HTMLCanvasElement) {
   canvas = cv
 
@@ -84,6 +87,10 @@ export function attachInput(cv: HTMLCanvasElement) {
   window.addEventListener('keydown', e => {
     mShift = e.shiftKey; mCtrl = e.ctrlKey; mAlt = e.altKey
     const name = keyName(e)
+    // Stop the browser acting on keys the game uses: Backspace navigates back
+    // in older browsers (Mypal!), Space/arrows scroll, Tab moves focus off the
+    // canvas. Leave modifier chords (Ctrl/Meta) alone so F5/devtools still work.
+    if (!e.ctrlKey && !e.metaKey && CONSUME.has(name)) e.preventDefault()
     held.add(name)
     lua.keyDown(name)
     if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
