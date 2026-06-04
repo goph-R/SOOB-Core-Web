@@ -263,5 +263,12 @@ export function drawBlur(
   pxW: number, pxH: number, targetW: number, alpha: number,
 ) {
   const tex = buildBlur(key, srcTex, u0, v0, u1, v1, pxW, pxH, targetW)
-  drawQuadTex(tex, -vw / 2, -vh / 2, vw, vh, 0, 0, 1, 1, [1, 1, 1, alpha])
+  // Cover-fit (preserve the source aspect, crop the overflow) rather than
+  // stretch to the view — avoids a smeared backdrop on non-4:3 / mobile.
+  const ra = pxW / pxH, va = vw / vh
+  let uw = 1, uh = 1
+  if (ra > va) uw = va / ra
+  else uh = ra / va
+  const ux = (1 - uw) / 2, uy = (1 - uh) / 2
+  drawQuadTex(tex, -vw / 2, -vh / 2, vw, vh, ux, uy, ux + uw, uy + uh, [1, 1, 1, alpha])
 }
