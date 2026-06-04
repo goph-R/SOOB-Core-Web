@@ -32,7 +32,7 @@ emcc -O2 -DNDEBUG \
   -o "$OUT/liblua.mjs" \
   -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME=createLua \
   -s ALLOW_MEMORY_GROWTH=1 \
-  -s EXPORTED_RUNTIME_METHODS=ccall,cwrap,FS,UTF8ToString,stringToUTF8,lengthBytesUTF8 \
+  -s EXPORTED_RUNTIME_METHODS=ccall,cwrap,FS,UTF8ToString,stringToUTF8,stringToNewUTF8,lengthBytesUTF8 \
   -s EXPORTED_FUNCTIONS=_soob_new,_soob_doFile,_soob_doString,_soob_loadAssets,_soob_callHook0,_soob_update,_soob_render,_soob_mouseDown,_soob_mouseUp,_soob_mouseMove,_soob_keyDown,_soob_keyUp,_soob_textInput,_malloc,_free
 
 echo "built $OUT/liblua.mjs + liblua.wasm"

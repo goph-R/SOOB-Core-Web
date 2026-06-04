@@ -195,3 +195,73 @@ export function drawEllipseRibbon(
     pushQuadPts(white, quad, [uv0, uv0, uv0, uv0], c)
   }
 }
+
+// ---- blur (downsample to a tiny FBO, then upscale to fill the view) --------
+//
+// Matches the desktop drawBlur "color summary": render the region into a small
+// off-screen texture (default 16 px wide), then stretch it over the whole view
+// — the GPU's bilinear upscale does the blurring. The small texture is cached
+// per (name, width) since the source art is static; only the per-frame upscale
+// draw (and its alpha) changes.
+
+const blurCache = new Map<string, WebGLTexture>()
+let blurFbo: WebGLFramebuffer | null = null
+
+function buildBlur(
+  key: string, srcTex: WebGLTexture,
+  u0: number, v0: number, u1: number, v1: number, pxW: number, pxH: number, targetW: number,
+): WebGLTexture {
+  const cached = blurCache.get(key)
+  if (cached) return cached
+
+  const tw = Math.max(2, Math.min(64, Math.round(targetW)))
+  const th = Math.max(2, Math.round((tw * pxH) / pxW))
+
+  const tex = gl.createTexture()!
+  gl.bindTexture(gl.TEXTURE_2D, tex)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tw, th, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+  flush() // emit any pending main-canvas draws before switching target
+  if (!blurFbo) blurFbo = gl.createFramebuffer()
+  gl.bindFramebuffer(gl.FRAMEBUFFER, blurFbo)
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
+  gl.viewport(0, 0, tw, th)
+  gl.uniform2f(uScale, 1, 1) // a_pos given directly in NDC below
+
+  // Fullscreen NDC quad. Pair NDC-bottom with source-TOP so the FBO texture
+  // ends up upright under our top-left v convention (no flip on upscale).
+  const q = [
+    -1, -1, u0, v0, 1, 1, 1, 1, 1, -1, u1, v0, 1, 1, 1, 1, 1, 1, u1, v1, 1, 1, 1, 1,
+    -1, -1, u0, v0, 1, 1, 1, 1, 1, 1, u1, v1, 1, 1, 1, 1, -1, 1, u0, v1, 1, 1, 1, 1,
+  ]
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(q), gl.STREAM_DRAW)
+  const stride = FLOATS_PER_VERT * 4
+  gl.enableVertexAttribArray(aPos); gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, stride, 0)
+  gl.enableVertexAttribArray(aUV); gl.vertexAttribPointer(aUV, 2, gl.FLOAT, false, stride, 8)
+  gl.enableVertexAttribArray(aCol); gl.vertexAttribPointer(aCol, 4, gl.FLOAT, false, stride, 16)
+  gl.bindTexture(gl.TEXTURE_2D, srcTex)
+  gl.drawArrays(gl.TRIANGLES, 0, 6)
+
+  // restore main-canvas render target + projection
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  gl.viewport(0, 0, canvas.width, canvas.height)
+  gl.uniform2f(uScale, 2 / vw, -2 / vh)
+  curTex = null
+
+  blurCache.set(key, tex)
+  return tex
+}
+
+export function drawBlur(
+  key: string, srcTex: WebGLTexture,
+  u0: number, v0: number, u1: number, v1: number,
+  pxW: number, pxH: number, targetW: number, alpha: number,
+) {
+  const tex = buildBlur(key, srcTex, u0, v0, u1, v1, pxW, pxH, targetW)
+  drawQuadTex(tex, -vw / 2, -vh / 2, vw, vh, 0, 0, 1, 1, [1, 1, 1, alpha])
+}

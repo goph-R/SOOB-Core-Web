@@ -19,6 +19,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <emscripten.h>
 
 #include "lua.h"
@@ -77,6 +78,12 @@ EM_JS(void, js_musicStop, (double f), { globalThis.__SOOB.musicStop(f); })
 EM_JS(void, js_musicVolume, (double g), { globalThis.__SOOB.musicVolume(g); })
 EM_JS(void, js_showMessage, (const char *t, double s), { globalThis.__SOOB.showMessage(UTF8ToString(t), s); })
 EM_JS(void, js_requestQuit, (void), { globalThis.__SOOB.requestQuit(); })
+
+EM_JS(void, js_optSave, (const char *s), { globalThis.__SOOB.optSave(UTF8ToString(s)); })
+EM_JS(char *, js_optLoad, (void), {
+  const s = globalThis.__SOOB.optLoad();
+  return (s == null) ? 0 : stringToNewUTF8(s);
+})
 
 EM_JS(void, js_regSound, (const char *n, const char *p), { globalThis.__SOOB.registerSound(UTF8ToString(n), UTF8ToString(p)); })
 EM_JS(void, js_regMusic, (const char *n, const char *p), { globalThis.__SOOB.registerMusic(UTF8ToString(n), UTF8ToString(p)); })
@@ -316,8 +323,34 @@ static int scrOptGet(lua_State *L) {
   }
   return 1;   /* top is the value; the opts table beneath is ignored */
 }
-static int scrOptSave(lua_State *L) { lua_pushboolean(L, 1); return 1; }
-static int scrOptLoad(lua_State *L) { lua_pushboolean(L, 1); return 1; }
+/* Serialize the opts table to a `return { ... }` string (via the embedded
+   __soobSerialize Lua fn, registered in registerAll) and hand it to the host,
+   which writes it to localStorage. Same file format as the desktop find5.dat. */
+static int scrOptSave(lua_State *L) {
+  lua_getglobal(L, "__soobSerialize");
+  if (!lua_isfunction(L, -1)) { lua_pop(L, 1); lua_pushboolean(L, 0); return 1; }
+  pushOpts(L);
+  if (lua_pcall(L, 1, 1, 0)) { js_log(lua_tostring(L, -1)); lua_pop(L, 1); lua_pushboolean(L, 0); return 1; }
+  const char *str = lua_tostring(L, -1);
+  js_optSave(str ? str : "return {}");
+  lua_pop(L, 1);
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+/* Pull the saved string from the host (localStorage), load it as a chunk, and
+   install the resulting table as the opts store. No-op if nothing is saved. */
+static void loadOpts(lua_State *L) {
+  char *str = js_optLoad();
+  if (!str) return;
+  if (luaL_loadstring(L, str) == 0 && lua_pcall(L, 0, 1, 0) == 0 && lua_istable(L, -1)) {
+    lua_setfield(L, LUA_REGISTRYINDEX, "__opts");
+  } else {
+    lua_pop(L, 1);
+  }
+  free(str);
+}
+static int scrOptLoad(lua_State *L) { loadOpts(L); lua_pushboolean(L, 1); return 1; }
 
 /* ---- print -> console (tab-joined, like stock print) ---- */
 static int scrPrint(lua_State *L) {
@@ -398,6 +431,36 @@ static void registerAll(lua_State *L) {
   setconst(L, "ALIGN_LEFT", 1);   setconst(L, "ALIGN_CENTER", 2);  setconst(L, "ALIGN_RIGHT", 4);
   setconst(L, "ALIGN_TOP", 8);    setconst(L, "ALIGN_MIDDLE", 16); setconst(L, "ALIGN_BOTTOM", 32);
   setconst(L, "FLIP_H", 1);       setconst(L, "FLIP_V", 2);
+
+  /* Options serializer used by optSave — produces a `return { ... }` chunk in
+     the same format as the desktop find5.dat (array part + bracketed keys,
+     %q-escaped strings, depth-capped). string/math/table are not sandboxed. */
+  luaL_dostring(L,
+    "function __soobSerialize(opts)\n"
+    "  local function s(v, d)\n"
+    "    local t = type(v)\n"
+    "    if t == 'number' then return tostring(v)\n"
+    "    elseif t == 'boolean' then return v and 'true' or 'false'\n"
+    "    elseif t == 'string' then return string.format('%q', v)\n"
+    "    elseif t == 'table' and d < 16 then\n"
+    "      local o = {'{'}\n"
+    "      local n = #v\n"
+    "      for i = 1, n do o[#o+1] = s(v[i], d+1) .. ',' end\n"
+    "      for k, val in pairs(v) do\n"
+    "        local isArr = (type(k) == 'number' and k == math.floor(k) and k >= 1 and k <= n)\n"
+    "        if not isArr then\n"
+    "          local ks\n"
+    "          if type(k) == 'string' then ks = '[' .. string.format('%q', k) .. ']'\n"
+    "          elseif type(k) == 'number' then ks = '[' .. tostring(k) .. ']' end\n"
+    "          if ks then o[#o+1] = ks .. '=' .. s(val, d+1) .. ',' end\n"
+    "        end\n"
+    "      end\n"
+    "      o[#o+1] = '}'\n"
+    "      return table.concat(o)\n"
+    "    else return 'nil' end\n"
+    "  end\n"
+    "  return 'return ' .. s(opts or {}, 0)\n"
+    "end\n");
 }
 
 /* ---- asset manifest walk (ported from scriptLoadAssets) ---- */
@@ -434,6 +497,7 @@ EMSCRIPTEN_KEEPALIVE void soob_new(void) {
   luaL_openlibs(gL);
   scriptSandbox(gL);
   registerAll(gL);
+  loadOpts(gL);   /* auto-load persisted options (mirrors desktop scriptInit) */
 }
 
 EMSCRIPTEN_KEEPALIVE int soob_doFile(const char *path) {

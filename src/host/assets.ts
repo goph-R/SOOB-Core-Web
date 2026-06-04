@@ -9,6 +9,7 @@
 
 import { makeTexture } from './gl'
 import { parseFnt, type FontData } from './text'
+import * as audio from './audio'
 
 const BASE = 'game/' // public/game/** served under /game/ (vite base './')
 
@@ -55,6 +56,14 @@ function dir(path: string): string {
 
 export async function loadAll(): Promise<void> {
   const jobs: Promise<void>[] = []
+
+  // Music is decoded lazily on first play; give audio a name→path resolver.
+  audio.setMusicResolver(name => music.get(name))
+
+  // Sounds (small WAVs) are decoded up front so soundPlay is instant.
+  for (const [name, paths] of sounds) {
+    for (const p of paths) jobs.push(audio.addSound(name, p))
+  }
 
   for (const [, e] of textures) {
     jobs.push((async () => {

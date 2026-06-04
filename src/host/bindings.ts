@@ -7,6 +7,7 @@
 
 import * as gl from './gl'
 import * as assets from './assets'
+import * as audio from './audio'
 import { drawText as drawTextGl, measure } from './text'
 import { inputState } from './input'
 
@@ -99,9 +100,13 @@ function drawBg(name: string) {
   )
 }
 
-let warnedBlur = false
-function drawBlur(_name: string, _w: number, _a: number) {
-  if (!warnedBlur) { console.warn('drawBlur: not implemented in M1 (FBO downsample lands in M2)'); warnedBlur = true }
+function drawBlur(name: string, width: number, alpha: number) {
+  const rg = assets.getRegion(name)
+  if (!rg) return
+  const te = assets.getTexture(rg.tex)
+  if (!te || !te.tex || te.w <= 0) return
+  const u0 = rg.x / te.w, v0 = rg.y / te.h, u1 = (rg.x + rg.w) / te.w, v1 = (rg.y + rg.h) / te.h
+  gl.drawBlur(`${name}:${width}`, te.tex, u0, v0, u1, v1, rg.w, rg.h, width, alpha)
 }
 
 export function installBindings() {
@@ -124,14 +129,18 @@ export function installBindings() {
     mouseDown: inputState.mouseDown,
     keyMods: inputState.keyMods,
 
-    // Audio: M1 stubs (Web Audio lands in M2).
-    soundPlay: (_n: string) => {},
-    musicPlay: (_n: string, _f: number, _l: boolean) => {},
-    musicStop: (_f: number) => {},
-    musicVolume: (_g: number) => {},
+    soundPlay: (n: string) => audio.soundPlay(n),
+    musicPlay: (n: string, f: number, l: boolean) => audio.musicPlay(n, f, l),
+    musicStop: (f: number) => audio.musicStop(f),
+    musicVolume: (g: number) => audio.musicVolume(g),
 
     showMessage: (t: string, _s: number) => console.log('[message]', t),
     requestQuit: () => console.log('requestQuit: no-op on web'),
+
+    // Persistence: the bridge serializes the opts table to a `return {...}`
+    // chunk; we stash it under the same name as the desktop save file.
+    optSave: (s: string) => { try { localStorage.setItem('find5.dat', s) } catch { /* private mode */ } },
+    optLoad: (): string | null => { try { return localStorage.getItem('find5.dat') } catch { return null } },
 
     registerSound: assets.registerSound,
     registerMusic: assets.registerMusic,

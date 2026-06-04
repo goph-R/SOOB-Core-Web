@@ -8,6 +8,7 @@
 import { initGL } from '../host/gl'
 import { installBindings } from '../host/bindings'
 import { attachInput } from '../host/input'
+import { initAudio } from '../host/audio'
 import * as lua from '../host/lua'
 import { loadAll } from '../host/assets'
 import { startLoop } from '../host/loop'
@@ -20,6 +21,7 @@ async function boot() {
   initGL(canvas)          // WebGL context + virtual canvas
   installBindings()       // globalThis.__SOOB — the surface the bridge calls
   attachInput(canvas)     // DOM events → hooks + polling state
+  initAudio()             // AudioContext + first-gesture unlock
 
   await lua.initLua()     // load liblua.wasm, soob_new()
 
