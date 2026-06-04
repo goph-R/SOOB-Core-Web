@@ -8,13 +8,43 @@
     />
     <title>Find5</title>
     <style>
-      html, body { margin: 0; height: 100%; background: #14141f; overflow: hidden; }
+      html, body {
+        margin: 0; height: 100%; width: 100%;
+        background: #14141f; overflow: hidden;
+        position: fixed; inset: 0;
+        overscroll-behavior: none;            /* no pull-to-refresh / scroll chaining */
+        touch-action: none;                   /* no double-tap zoom / pan */
+        user-select: none; -webkit-user-select: none;
+        -webkit-touch-callout: none;          /* no long-press menu (iOS) */
+        -webkit-tap-highlight-color: transparent;
+      }
       #app { position: fixed; inset: 0; display: grid; place-items: center; }
       canvas { display: block; touch-action: none; image-rendering: auto; }
+
+      /* Rotate-to-landscape prompt — shown only on touch devices in portrait. */
+      #rotate {
+        position: fixed; inset: 0; z-index: 10;
+        display: none; flex-direction: column; gap: 0.6em;
+        align-items: center; justify-content: center; text-align: center;
+        background: #14141f; color: #e8e8f0;
+        font: 600 18px/1.4 system-ui, sans-serif; padding: 2rem;
+      }
+      #rotate .glyph { font-size: 54px; animation: tilt 1.6s ease-in-out infinite; }
+      @keyframes tilt { 0%,100% { transform: rotate(-12deg) } 50% { transform: rotate(78deg) } }
+
+      /* Fullscreen toggle — added only where the Fullscreen API works. */
+      #fs {
+        position: fixed; top: env(safe-area-inset-top, 8px); right: 8px; z-index: 11;
+        display: none; width: 40px; height: 40px; padding: 0;
+        border: 0; border-radius: 8px; cursor: pointer;
+        background: rgba(0,0,0,0.4); color: #fff; font-size: 20px; line-height: 40px;
+      }
     </style>
   </head>
   <body>
     <div id="app"><canvas id="game"></canvas></div>
+    <div id="rotate"><span class="glyph">↻</span><span>Please rotate to landscape</span></div>
+    <button id="fs" title="Fullscreen">⛶</button>
     <script type="module" src="/src/game/main.ts"></script>
   </body>
 </html>

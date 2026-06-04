@@ -50,6 +50,13 @@ function keyName(e: KeyboardEvent): string {
 // Keys whose browser default we suppress (navigation / scroll / focus).
 const CONSUME = new Set(['backspace', 'tab', 'space', 'left', 'right', 'up', 'down'])
 
+// Park the virtual cursor off-canvas so hover/highlight state clears — touch
+// has no pointer-leave, so a tapped button would otherwise stay lit.
+function clearHover() {
+  mvx = -1e5; mvy = -1e5
+  lua.mouseMove(mvx, mvy, 0, 0)
+}
+
 export function attachInput(cv: HTMLCanvasElement) {
   canvas = cv
 
@@ -69,6 +76,13 @@ export function attachInput(cv: HTMLCanvasElement) {
     const b = pointerButton(e)
     buttons.delete(b)
     lua.mouseUp(x, y, b)
+    if (e.pointerType === 'touch') clearHover() // no hover on touch — don't leave a button lit
+  })
+  cv.addEventListener('pointercancel', e => {
+    const b = pointerButton(e)
+    buttons.delete(b)
+    lua.mouseUp(mvx, mvy, b)
+    clearHover()
   })
   cv.addEventListener('pointermove', e => {
     const [x, y] = toVirtual(e.clientX, e.clientY)

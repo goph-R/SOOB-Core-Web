@@ -9,6 +9,7 @@ import { initGL } from '../host/gl'
 import { installBindings } from '../host/bindings'
 import { attachInput } from '../host/input'
 import { initAudio } from '../host/audio'
+import { initMobile } from '../host/mobile'
 import * as lua from '../host/lua'
 import { loadAll } from '../host/assets'
 import { startLoop } from '../host/loop'
@@ -22,8 +23,10 @@ async function boot() {
   installBindings()       // globalThis.__SOOB — the surface the bridge calls
   attachInput(canvas)     // DOM events → hooks + polling state
   initAudio()             // AudioContext + first-gesture unlock
+  initMobile()            // rotate prompt, fullscreen, gesture guards (touch only)
 
   await lua.initLua()     // load liblua.wasm, soob_new()
+  lua.setPlatform('web')  // expose platform="web" to scripts
 
   // Preload every .lua into MEMFS so require() + luaL_loadfile resolve.
   const manifest: Manifest = await (await fetch('game/manifest.json')).json()

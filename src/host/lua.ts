@@ -46,6 +46,12 @@ export function writeLuaFile(rel: string, text: string) {
   M.FS.writeFile(full, text)
 }
 
+// Set a read-only `platform` global so game scripts can branch cosmetically
+// (e.g. hide the desktop-only quit button on web). Optional; harmless if unused.
+export function setPlatform(p: string) {
+  M.ccall('soob_doString', 'number', ['string'], [`platform=${JSON.stringify(p)}`])
+}
+
 export function loadAssets(): boolean {
   return !!M.ccall('soob_loadAssets', 'number', ['string'], ['/game/assets.lua'])
 }
