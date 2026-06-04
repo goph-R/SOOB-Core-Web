@@ -77,12 +77,23 @@ export function soundPlay(name: string) {
   src.start()
 }
 
+let oggOk: boolean | null = null
+function canPlayOgg(): boolean {
+  if (oggOk === null) {
+    const a = document.createElement('audio')
+    oggOk = !!a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"') !== ''
+  }
+  return oggOk
+}
+
 async function getMusic(name: string): Promise<AudioBuffer | null> {
   if (musicBuffers.has(name)) return musicBuffers.get(name)!
   const path = musicPath(name)
   if (!path || !ctx) return null
+  // iOS/Safari can't decode Ogg Vorbis — fall back to the AAC (.m4a) sibling.
+  const url = BASE + (canPlayOgg() ? path : path.replace(/\.ogg$/i, '.m4a'))
   try {
-    const res = await fetch(BASE + path)
+    const res = await fetch(url)
     if (!res.ok) throw new Error(`${res.status} ${path}`)
     const buf = await ctx.decodeAudioData(await res.arrayBuffer())
     musicBuffers.set(name, buf)

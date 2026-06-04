@@ -5,6 +5,7 @@
 
 import * as lua from './lua'
 import { viewW, viewH } from './gl'
+import { imeActive } from './ime'
 
 let canvas: HTMLCanvasElement
 let mvx = 0, mvy = 0
@@ -99,6 +100,10 @@ export function attachInput(cv: HTMLCanvasElement) {
   }, { passive: false })
 
   window.addEventListener('keydown', e => {
+    // While the soft-keyboard bridge is active, its hidden <input> is the sole
+    // source of text/edit events — skip the bubbled window keydown to avoid
+    // double input.
+    if (imeActive()) return
     mShift = e.shiftKey; mCtrl = e.ctrlKey; mAlt = e.altKey
     const name = keyName(e)
     // Stop the browser acting on keys the game uses: Backspace navigates back

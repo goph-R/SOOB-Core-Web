@@ -78,6 +78,8 @@ EM_JS(void, js_musicStop, (double f), { globalThis.__SOOB.musicStop(f); })
 EM_JS(void, js_musicVolume, (double g), { globalThis.__SOOB.musicVolume(g); })
 EM_JS(void, js_showMessage, (const char *t, double s), { globalThis.__SOOB.showMessage(UTF8ToString(t), s); })
 EM_JS(void, js_requestQuit, (void), { globalThis.__SOOB.requestQuit(); })
+EM_JS(void, js_imeShow, (double x, double y, double w, double h), { globalThis.__SOOB.imeShow(x, y, w, h); })
+EM_JS(void, js_imeHide, (void), { globalThis.__SOOB.imeHide(); })
 
 EM_JS(void, js_optSave, (const char *s), { globalThis.__SOOB.optSave(UTF8ToString(s)); })
 EM_JS(char *, js_optLoad, (void), {
@@ -291,6 +293,12 @@ static int scrUiShowMessage(lua_State *L) {
   return 0;
 }
 static int scrRequestQuit(lua_State *L) { (void)L; js_requestQuit(); return 0; }
+static int scrImeShow(lua_State *L) {
+  js_imeShow(luaL_checknumber(L, 1), luaL_checknumber(L, 2),
+             luaL_checknumber(L, 3), luaL_checknumber(L, 4));
+  return 0;
+}
+static int scrImeHide(lua_State *L) { (void)L; js_imeHide(); return 0; }
 
 /* ---- options (in-memory for M1; localStorage persistence lands in M2) ----
  * Kept as a Lua table in the registry so values (incl. nested tables) round-
@@ -426,6 +434,8 @@ static void registerAll(lua_State *L) {
   lua_register(L, "optSave", scrOptSave);
   lua_register(L, "optLoad", scrOptLoad);
   lua_register(L, "requestQuit", scrRequestQuit);
+  lua_register(L, "imeShow", scrImeShow);
+  lua_register(L, "imeHide", scrImeHide);
   lua_register(L, "print", scrPrint);
 
   setconst(L, "ALIGN_LEFT", 1);   setconst(L, "ALIGN_CENTER", 2);  setconst(L, "ALIGN_RIGHT", 4);

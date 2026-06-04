@@ -8,6 +8,7 @@
 import * as gl from './gl'
 import * as assets from './assets'
 import * as audio from './audio'
+import * as ime from './ime'
 import { drawText as drawTextGl, measure } from './text'
 import { inputState } from './input'
 
@@ -141,6 +142,9 @@ export function installBindings() {
     // chunk; we stash it under the same name as the desktop save file.
     optSave: (s: string) => { try { localStorage.setItem('find5.dat', s) } catch { /* private mode */ } },
     optLoad: (): string | null => { try { return localStorage.getItem('find5.dat') } catch { return null } },
+
+    imeShow: (x: number, y: number, w: number, h: number) => ime.imeShow(x, y, w, h),
+    imeHide: () => ime.imeHide(),
 
     registerSound: assets.registerSound,
     registerMusic: assets.registerMusic,
