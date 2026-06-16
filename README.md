@@ -29,15 +29,41 @@ scripts/     build-lua.sh    emsdk: compile lua-5.1.5 + bridge.c → public/lua/
 ## Develop
 
 ```sh
-# one-time: install Emscripten (https://emscripten.org), then
 npm install
-npm run build-lua        # compile the Lua-WASM module (needs emcc on PATH)
+npm run build-lua        # compile the Lua-WASM module (needs emcc — see below)
 npm run dev              # vite dev server (auto-runs sync-game first)
 ```
 
 Requires a checkout of [`Find5`](https://github.com/goph-R/Find5) and
 [`SOOB-Core`](https://github.com/goph-R/SOOB-Core) as siblings of this repo
 (for the game bundle and the vendored Lua sources, respectively).
+
+### Emscripten (one-time)
+
+`build-lua.sh` compiles the Lua sources with `emcc`. If you see
+`error: emcc not found`, install the Emscripten SDK. The simplest option is to
+clone it as a sibling of this repo (at `../emsdk`) — the script sources it
+automatically when `emcc` isn't already on `PATH`:
+
+```sh
+cd ..                    # the folder beside SOOB-Core-Web
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+```
+
+Needs Python 3 and Git on `PATH`. To install emsdk elsewhere, point the script
+at it instead: `EMSDK_DIR=/path/to/emsdk npm run build-lua`.
+
+**Windows:** the build scripts run under `bash`. If `npm run build-lua` reports
+`emcc not found` even after installing emsdk, npm is likely invoking WSL's
+`bash` (`C:\WINDOWS\system32\bash.exe`) instead of Git Bash. Point npm at Git
+Bash once:
+
+```sh
+npm config set script-shell "C:\Program Files\Git\bin\bash.exe"
+```
 
 ## Status
 

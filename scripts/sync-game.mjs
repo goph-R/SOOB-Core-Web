@@ -23,8 +23,11 @@ cpSync(join(find5, 'assets'), join(dst, 'assets'), { recursive: true })
 cpSync(join(find5, 'assets.lua'), join(dst, 'assets.lua'))
 if (existsSync(join(find5, 'config.lua'))) cpSync(join(find5, 'config.lua'), join(dst, 'config.lua'))
 
-// .lua files to write into MEMFS at boot: assets.lua + everything under scripts/.
+// .lua files to write into MEMFS at boot: assets.lua, config.lua (if present),
+// + everything under scripts/. config.lua sits at the game root (mirrors the
+// desktop layout) so the host can luaL_loadfile '/game/config.lua' if needed.
 const lua = ['assets.lua']
+if (existsSync(join(dst, 'config.lua'))) lua.push('config.lua')
 ;(function walk(dir) {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e)
