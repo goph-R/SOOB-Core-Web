@@ -68,6 +68,15 @@ npm config set script-shell "C:\Program Files\Git\bin\bash.exe"
 
 ## Status
 
-Milestones M0–M1: Lua-WASM boots and the Find5 title screen renders in the
-browser. Audio, the full renderer (ellipse ribbon / blur), persistence, mobile,
-and PWA packaging follow — see the plan in `SOOB-Core/SOOB-Core-Web.md`.
+Milestones M0–M5 are in: Lua-WASM boots, the full renderer (BMFont, ellipse
+ribbon, FBO blur), Web Audio with music crossfade, options in localStorage,
+mobile landscape with the rotate prompt, the IME soft-keyboard bridge, and PWA
+packaging. Find5 plays in a desktop and a mobile browser.
+
+The game's identity — tab title, PWA name/description/orientation, save key —
+comes from the bundle's `app.lua`, the same file the desktop and Android hosts
+read (see [`SOOB-Lua.md`](https://github.com/goph-R/SOOB-Core/blob/main/SOOB-Lua.md)).
+
+There is a sibling now: [`SOOB-Core-Android`](https://github.com/goph-R/SOOB-Core-Android)
+is the same binding surface hosted in Kotlin on the NDK. The plan for this one
+is in `SOOB-Core/SOOB-Core-Web.md`.
