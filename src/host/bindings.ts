@@ -9,6 +9,7 @@ import * as gl from './gl'
 import * as assets from './assets'
 import * as audio from './audio'
 import * as ime from './ime'
+import { optKey } from './appinfo'
 import { drawText as drawTextGl, measure } from './text'
 import { inputState } from './input'
 
@@ -139,9 +140,10 @@ export function installBindings() {
     requestQuit: () => console.log('requestQuit: no-op on web'),
 
     // Persistence: the bridge serializes the opts table to a `return {...}`
-    // chunk; we stash it under the same name as the desktop save file.
-    optSave: (s: string) => { try { localStorage.setItem('find5.dat', s) } catch { /* private mode */ } },
-    optLoad: (): string | null => { try { return localStorage.getItem('find5.dat') } catch { return null } },
+    // chunk; we stash it under the same name as the desktop save file
+    // (<id>.dat, from the bundle's app.lua).
+    optSave: (s: string) => { try { localStorage.setItem(optKey(), s) } catch { /* private mode */ } },
+    optLoad: (): string | null => { try { return localStorage.getItem(optKey()) } catch { return null } },
 
     imeShow: (x: number, y: number, w: number, h: number) => ime.imeShow(x, y, w, h),
     imeHide: () => ime.imeHide(),

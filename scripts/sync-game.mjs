@@ -22,6 +22,9 @@ cpSync(join(find5, 'scripts'), join(dst, 'scripts'), { recursive: true })
 cpSync(join(find5, 'assets'), join(dst, 'assets'), { recursive: true })
 cpSync(join(find5, 'assets.lua'), join(dst, 'assets.lua'))
 if (existsSync(join(find5, 'config.lua'))) cpSync(join(find5, 'config.lua'), join(dst, 'config.lua'))
+// app.lua names the game for every host — the tab title, the PWA manifest and
+// the localStorage key all come from it.
+if (existsSync(join(find5, 'app.lua'))) cpSync(join(find5, 'app.lua'), join(dst, 'app.lua'))
 
 // .lua files to write into MEMFS at boot: assets.lua, config.lua (if present),
 // + everything under scripts/. config.lua sits at the game root (mirrors the

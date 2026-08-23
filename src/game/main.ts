@@ -11,6 +11,7 @@ import { attachInput } from '../host/input'
 import { initAudio } from '../host/audio'
 import { initMobile } from '../host/mobile'
 import * as lua from '../host/lua'
+import { loadAppInfo } from '../host/appinfo'
 import { loadAll } from '../host/assets'
 import { startLoop } from '../host/loop'
 
@@ -24,6 +25,10 @@ async function boot() {
   attachInput(canvas)     // DOM events → hooks + polling state
   initAudio()             // AudioContext + first-gesture unlock
   initMobile()            // rotate prompt, fullscreen, gesture guards (touch only)
+
+  // Identity first: it names the tab and the localStorage key the options load
+  // from, and the bridge reads options while creating the Lua state.
+  await loadAppInfo()
 
   await lua.initLua()     // load liblua.wasm, soob_new()
   lua.setPlatform('web')  // expose platform="web" to scripts

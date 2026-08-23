@@ -19,6 +19,7 @@ src/host/    gl/text/audio   WebGL1 batcher, BMFont, Web Audio
              assets/input    async asset loaders + DOM→hook input
              bindings/loop   the host object the bridge calls + the rAF frame loop
              lua.ts          loads the WASM module, runs the scripts, drives the hooks
+             appinfo.ts      the game's identity (app.lua): title, PWA manifest, save key
 src/game/    main.ts         boot sequence
 scripts/     build-lua.sh    emsdk: compile lua-5.1.5 + bridge.c → public/lua/liblua.{mjs,wasm}
              sync-game.mjs   pull ../Find5 scripts + assets into public/game/ (Find5 stays source of truth)
