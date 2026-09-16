@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "description": "Browser runtime for 2D SOOB-Core games (Find5 first). JS host for the SOOB-Lua binding surface; Lua 5.1 runs in WASM.",
+  "description": "Browser runtime for 2D SOOB-Core games. JS host for the SOOB-Lua binding surface; Lua 5.1 runs in WASM.",
+  "soobGame": "../Find5",
   "scripts": {
     "sync-game": "node scripts/sync-game.mjs",
     "build-lua": "bash scripts/build-lua.sh",

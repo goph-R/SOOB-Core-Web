@@ -1,43 +1,71 @@
-// sync-game.mjs — copy the Find5 game bundle into public/game/ and emit a
-// manifest of the .lua files to preload into MEMFS.
+// sync-game.mjs — copy a game bundle into public/game/ and emit a manifest of
+// the .lua files to preload into MEMFS.
 //
-// Find5 stays the single source of truth: this only copies, never forks. Run
-// automatically by the npm predev/prebuild hooks.
+// The game repo stays the single source of truth: this only copies, never
+// forks. Which game is resolved by game-path.mjs (SOOB_GAME env, else the
+// "soobGame" field in package.json). Run automatically by the npm
+// predev/prebuild hooks.
 
-import { cpSync, mkdirSync, existsSync, writeFileSync, readdirSync, statSync } from 'node:fs'
-import { resolve, dirname, relative, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { cpSync, mkdirSync, rmSync, existsSync, writeFileSync, readdirSync, statSync } from 'node:fs'
+import { resolve, relative, join } from 'node:path'
+import { gamePath, repoRoot } from './game-path.mjs'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const find5 = resolve(root, '../Find5')
-const dst = resolve(root, 'public/game')
+const game = gamePath()
+const dst = resolve(repoRoot, 'public/game')
 
-if (!existsSync(find5)) {
-  console.error(`sync-game: ../Find5 not found at ${find5}`)
+if (!existsSync(game)) {
+  console.error(`sync-game: game bundle not found at ${game}`)
+  console.error('Set "soobGame" in package.json, or SOOB_GAME in the environment.')
   process.exit(1)
 }
 
+// Wipe first: a plain copy leaves files behind that the game has since renamed
+// or deleted, and a stale asset that still loads is a confusing bug. public/
+// game/ is generated and gitignored, so there is nothing here to preserve.
+rmSync(dst, { recursive: true, force: true })
 mkdirSync(dst, { recursive: true })
-cpSync(join(find5, 'scripts'), join(dst, 'scripts'), { recursive: true })
-cpSync(join(find5, 'assets'), join(dst, 'assets'), { recursive: true })
-cpSync(join(find5, 'assets.lua'), join(dst, 'assets.lua'))
-if (existsSync(join(find5, 'config.lua'))) cpSync(join(find5, 'config.lua'), join(dst, 'config.lua'))
-// app.lua names the game for every host — the tab title, the PWA manifest and
-// the localStorage key all come from it.
-if (existsSync(join(find5, 'app.lua'))) cpSync(join(find5, 'app.lua'), join(dst, 'app.lua'))
 
-// .lua files to write into MEMFS at boot: assets.lua, config.lua (if present),
-// + everything under scripts/. config.lua sits at the game root (mirrors the
-// desktop layout) so the host can luaL_loadfile '/game/config.lua' if needed.
-const lua = ['assets.lua']
-if (existsSync(join(dst, 'config.lua'))) lua.push('config.lua')
-;(function walk(dir) {
-  for (const e of readdirSync(dir)) {
-    const p = join(dir, e)
-    if (statSync(p).isDirectory()) walk(p)
-    else if (e.endsWith('.lua')) lua.push(relative(dst, p).split(/[\\/]/).join('/'))
-  }
-})(join(dst, 'scripts'))
+// Everything is optional — a half-built game should still boot and tell you
+// what's missing, rather than dying inside cpSync.
+const copyDir = (name) => {
+  if (existsSync(join(game, name))) cpSync(join(game, name), join(dst, name), { recursive: true })
+  else console.warn(`sync-game: no ${name}/ in the bundle`)
+}
+const copyFile = (name) => {
+  if (existsSync(join(game, name))) cpSync(join(game, name), join(dst, name))
+  else console.warn(`sync-game: no ${name} in the bundle`)
+}
+
+copyDir('scripts')
+copyDir('assets')
+copyFile('assets.lua')
+// app.lua names the game for every host — the tab title, the PWA manifest, the
+// theme colour and the localStorage key all come from it.
+copyFile('app.lua')
+
+// NOTE: config.lua is deliberately NOT copied. Every field in it (width,
+// height, fullscreen, vsync, render, depth) is desktop-only by construction —
+// the web canvas sizes to the viewport and there is no software backend in
+// WASM. It used to be copied and preloaded, and nothing ever read it.
+
+// The game's web icon, if it ships one. Falls back to the tracked default so a
+// bundle without art still builds.
+const icon = join(game, 'web', 'icon.svg')
+cpSync(existsSync(icon) ? icon : resolve(repoRoot, 'public/icon.default.svg'),
+       resolve(repoRoot, 'public/icon.svg'))
+
+// .lua files to write into MEMFS at boot: assets.lua + everything under
+// scripts/, as paths relative to public/game/.
+const lua = existsSync(join(dst, 'assets.lua')) ? ['assets.lua'] : []
+if (existsSync(join(dst, 'scripts'))) {
+  ;(function walk(dir) {
+    for (const e of readdirSync(dir)) {
+      const p = join(dir, e)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (e.endsWith('.lua')) lua.push(relative(dst, p).split(/[\\/]/).join('/'))
+    }
+  })(join(dst, 'scripts'))
+}
 
 writeFileSync(join(dst, 'manifest.json'), JSON.stringify({ lua }, null, 2))
-console.log(`sync-game: copied Find5 → public/game (${lua.length} lua files)`)
+console.log(`sync-game: copied ${relative(repoRoot, game)} → public/game (${lua.length} lua files)`)

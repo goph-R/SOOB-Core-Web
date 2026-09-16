@@ -11,3 +11,4 @@ emsdk/
 
 *.log
 .DS_Store
+public/icon.svg

@@ -1,7 +1,7 @@
 // appinfo.ts — the game's identity, read from the bundle's app.lua.
 //
-// A game names itself once (name / id / orientation / description) and every
-// host reads that same file: SOOB-Core's app_info.h on the desktop, AppInfo.kt
+// A game names itself once (name / id / orientation / description /
+// background) and every host reads that same file: SOOB-Core's app_info.h on the desktop, AppInfo.kt
 // in the Android player, this here. Nothing in the web host hardcodes "Find5".
 //
 // It is used at two different times, which is why the parser is plain string
@@ -17,6 +17,8 @@ export interface AppInfo {
   id: string
   orientation: 'landscape' | 'portrait'
   description: string
+  /** "#rrggbb" clear colour — the same value the desktop and Android hosts use. */
+  background: string
 }
 
 /** Generic on purpose: a bundle without app.lua still runs, it just isn't named. */
@@ -25,6 +27,7 @@ export const DEFAULT_APP: AppInfo = {
   id: 'soob',
   orientation: 'landscape',
   description: '',
+  background: '#14141f',
 }
 
 export function parseAppLua(src: string): AppInfo {
@@ -41,6 +44,7 @@ export function parseAppLua(src: string): AppInfo {
     else if (key === 'id') out.id = value
     else if (key === 'orientation') out.orientation = value === 'portrait' ? 'portrait' : 'landscape'
     else if (key === 'description') out.description = value
+    else if (key === 'background' && /^#[0-9a-fA-F]{6}$/.test(value)) out.background = value
   }
   return out
 }

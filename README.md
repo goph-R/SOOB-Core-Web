@@ -22,7 +22,8 @@ src/host/    gl/text/audio   WebGL1 batcher, BMFont, Web Audio
              appinfo.ts      the game's identity (app.lua): title, PWA manifest, save key
 src/game/    main.ts         boot sequence
 scripts/     build-lua.sh    emsdk: compile lua-5.1.5 + bridge.c → public/lua/liblua.{mjs,wasm}
-             sync-game.mjs   pull ../Find5 scripts + assets into public/game/ (Find5 stays source of truth)
+             game-path.mjs   which game to build: SOOB_GAME env, else package.json "soobGame"
+             sync-game.mjs   pull that game's scripts + assets into public/game/ (the game stays source of truth)
 ```
 
 `public/lua/` and `public/game/` are generated, not committed.
@@ -35,9 +36,22 @@ npm run build-lua        # compile the Lua-WASM module (needs emcc — see below
 npm run dev              # vite dev server (auto-runs sync-game first)
 ```
 
-Requires a checkout of [`Find5`](https://github.com/goph-R/Find5) and
-[`SOOB-Core`](https://github.com/goph-R/SOOB-Core) as siblings of this repo
-(for the game bundle and the vendored Lua sources, respectively).
+Requires a game bundle and [`SOOB-Core`](https://github.com/goph-R/SOOB-Core)
+(for the vendored Lua sources) as siblings of this repo.
+
+### Which game
+
+`package.json`'s `soobGame` field names the game folder (`"../Find5"` by
+default). Override it per run without editing anything:
+
+```sh
+SOOB_GAME=../MyGame npm run dev
+```
+
+The game supplies its own identity (`app.lua` — name, id, orientation,
+description, background colour) and its own PWA icon at `<game>/web/icon.svg`;
+if it ships none, `public/icon.default.svg` is used. Note that `config.lua` is
+**not** copied into the bundle — every field in it is desktop-only.
 
 ### Emscripten (one-time)
 

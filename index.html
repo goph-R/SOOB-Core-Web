@@ -9,14 +9,14 @@
     <title>%APP_NAME%</title>
     <link rel="icon" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <meta name="theme-color" content="#14141f" />
+    <meta name="theme-color" content="%APP_BG%" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <style>
       html, body {
         margin: 0; height: 100%; width: 100%;
-        background: #14141f; overflow: hidden;
+        background: %APP_BG%; overflow: hidden;
         position: fixed; inset: 0;
         overscroll-behavior: none;            /* no pull-to-refresh / scroll chaining */
         touch-action: none;                   /* no double-tap zoom / pan */
@@ -32,7 +32,7 @@
         position: fixed; inset: 0; z-index: 10;
         display: none; flex-direction: column; gap: 0.6em;
         align-items: center; justify-content: center; text-align: center;
-        background: #14141f; color: #e8e8f0;
+        background: %APP_BG%; color: #e8e8f0;
         font: 600 18px/1.4 system-ui, sans-serif; padding: 2rem;
       }
       #rotate .glyph { font-size: 54px; animation: tilt 1.6s ease-in-out infinite; }
@@ -49,7 +49,7 @@
   </head>
   <body>
     <div id="app"><canvas id="game"></canvas></div>
-    <div id="rotate"><span class="glyph">↻</span><span>Please rotate to landscape</span></div>
+    <div id="rotate"><span class="glyph">↻</span><span id="rotate-text"></span></div>
     <button id="fs" title="Fullscreen">⛶</button>
     <script type="module" src="/src/game/main.ts"></script>
   </body>

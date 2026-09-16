@@ -24,11 +24,13 @@ async function boot() {
   installBindings()       // globalThis.__SOOB — the surface the bridge calls
   attachInput(canvas)     // DOM events → hooks + polling state
   initAudio()             // AudioContext + first-gesture unlock
-  initMobile()            // rotate prompt, fullscreen, gesture guards (touch only)
 
   // Identity first: it names the tab and the localStorage key the options load
-  // from, and the bridge reads options while creating the Lua state.
+  // from, the bridge reads options while creating the Lua state, and initMobile
+  // reads app.orientation to decide which way up the game wants to be.
   await loadAppInfo()
+
+  initMobile()            // rotate prompt, fullscreen, gesture guards (touch only)
 
   await lua.initLua()     // load liblua.wasm, soob_new()
   lua.setPlatform('web')  // expose platform="web" to scripts
