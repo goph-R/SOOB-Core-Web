@@ -25,3 +25,10 @@ export function gamePath() {
   throw new Error(
     'No game configured: set "soobGame" in package.json or SOOB_GAME in the environment.')
 }
+
+// Where SOOB-Core's Lua engine modules live. Same sibling assumption
+// build-lua.sh makes for the Lua sources ($ROOT/../SOOB-Core), and the twin of
+// the Gradle player's engineDir.
+export function enginePath() {
+  return resolve(repoRoot, '../SOOB-Core/scripts/engine')
+}

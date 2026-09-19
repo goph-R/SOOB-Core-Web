@@ -8,14 +8,21 @@
 
 import { cpSync, mkdirSync, rmSync, existsSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, relative, join } from 'node:path'
-import { gamePath, repoRoot } from './game-path.mjs'
+import { enginePath, gamePath, repoRoot } from './game-path.mjs'
 
 const game = gamePath()
+const engine = enginePath()
 const dst = resolve(repoRoot, 'public/game')
 
 if (!existsSync(game)) {
   console.error(`sync-game: game bundle not found at ${game}`)
   console.error('Set "soobGame" in package.json, or SOOB_GAME in the environment.')
+  process.exit(1)
+}
+
+if (!existsSync(engine)) {
+  console.error(`sync-game: engine modules not found at ${engine}`)
+  console.error('Check SOOB-Core out as a sibling of this repo.')
   process.exit(1)
 }
 
@@ -39,6 +46,18 @@ const copyFile = (name) => {
 copyDir('scripts')
 copyDir('assets')
 copyFile('assets.lua')
+
+// scripts/engine is generated everywhere: SOOB-Core owns it, and every desktop
+// build copies it into the game folder (soob.mk's `scripts/engine` rule,
+// soob.cmake's copy step) where it is gitignored. A freshly cloned game has no
+// engine modules at all until something copies them, so `require "engine.scene"`
+// would throw at boot after a perfectly successful build.
+//
+// Copy it here too, after the bundle's own scripts/ so SOOB-Core wins if a
+// desktop build already left a stale copy behind. Straight into public/game
+// rather than into the game folder: this repo never writes to the game's.
+// The twin of the Gradle player's engineDir `from`.
+cpSync(engine, join(dst, 'scripts', 'engine'), { recursive: true })
 // app.lua names the game for every host — the tab title, the PWA manifest, the
 // theme colour and the localStorage key all come from it.
 copyFile('app.lua')
@@ -68,4 +87,4 @@ if (existsSync(join(dst, 'scripts'))) {
 }
 
 writeFileSync(join(dst, 'manifest.json'), JSON.stringify({ lua }, null, 2))
-console.log(`sync-game: copied ${relative(repoRoot, game)} → public/game (${lua.length} lua files)`)
+console.log(`sync-game: copied ${relative(repoRoot, game)} + engine → public/game (${lua.length} lua files)`)

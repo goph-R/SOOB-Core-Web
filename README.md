@@ -23,7 +23,8 @@ src/host/    gl/text/audio   WebGL1 batcher, BMFont, Web Audio
 src/game/    main.ts         boot sequence
 scripts/     build-lua.sh    emsdk: compile lua-5.1.5 + bridge.c → public/lua/liblua.{mjs,wasm}
              game-path.mjs   which game to build: SOOB_GAME env, else package.json "soobGame"
-             sync-game.mjs   pull that game's scripts + assets into public/game/ (the game stays source of truth)
+             sync-game.mjs   pull that game's scripts + assets into public/game/, plus SOOB-Core's
+                             scripts/engine (the game stays source of truth; this never writes to it)
 ```
 
 `public/lua/` and `public/game/` are generated, not committed.
@@ -37,7 +38,8 @@ npm run dev              # vite dev server (auto-runs sync-game first)
 ```
 
 Requires a game bundle and [`SOOB-Core`](https://github.com/goph-R/SOOB-Core)
-(for the vendored Lua sources) as siblings of this repo.
+(for the vendored Lua sources **and** `scripts/engine`, which `sync-game.mjs`
+copies into the bundle) as siblings of this repo.
 
 ### Which game
 
@@ -52,6 +54,14 @@ The game supplies its own identity (`app.lua` — name, id, orientation,
 description, background colour) and its own PWA icon at `<game>/web/icon.svg`;
 if it ships none, `public/icon.default.svg` is used. Note that `config.lua` is
 **not** copied into the bundle — every field in it is desktop-only.
+
+That is the whole per-game surface. Unlike the Android player, which needs an
+app module in the game's repo for the `applicationId`, icon and Play listing,
+nothing here is game-specific: `<title>`, the PWA manifest and the theme colour
+are generated from `app.lua` at build time, and `base: './'` means the `dist/`
+drops onto any static host with no path configuration. A game ships on the web
+by pointing this checkout at it and deploying `dist/` — there is no wrapper to
+copy.
 
 ### Emscripten (one-time)
 
